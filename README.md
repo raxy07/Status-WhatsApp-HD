@@ -34,8 +34,8 @@ Buka aplikasi **Termux**, lalu salin dan tempel perintah berikut secara beruruta
 ```bash
 pkg update && pkg upgrade -y
 pkg install git -y
-git clone https://github.com
-cd NAMA_REPO_ANDA
+git clone https://github.com/raxy07
+cd Status-WhatsApp-HD
 chmod +x install.sh
 ./install.sh
 ```
@@ -93,8 +93,8 @@ Open **Termux**, then copy and paste the following commands in order:
 ```bash
 pkg update && pkg upgrade -y
 pkg install git -y
-git clone https://github.com
-cd NAMA_REPO_ANDA
+git clone https://github.com/raxy07
+cd Status-WhatsApp-HD
 chmod +x install.sh
 ./install.sh
 ```
