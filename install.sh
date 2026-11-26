@@ -23,17 +23,17 @@ if [ ! -f "status-hd" ]; then
     exit 1
 fi
 
-# 2. Instal dependensi lokal (FFmpeg) jika belum terpasang
-echo -e "${YELLOW}[1/4] Memeriksa & memasang paket FFmpeg...${NC}"
-if ! command -v ffmpeg &> /dev/null; then
-    pkg update -y && pkg install ffmpeg -y
+# 2. Instal dependensi lokal (FFmpeg & Termux-API untuk auto-scan Galeri)
+echo -e "${YELLOW}[1/4] Memeriksa & memasang paket FFmpeg dan Termux-API...${NC}"
+if ! command -v ffmpeg &> /dev/null || ! command -v termux-media-scan &> /dev/null; then
+    pkg update -y && pkg install ffmpeg termux-api -y
 else
-    echo -e "${GREEN}[✓] FFmpeg sudah terpasang.${NC}"
+    echo -e "${GREEN}[✓] FFmpeg dan Termux-API sudah terpasang.${NC}"
 fi
 
 # 3. Minta izin akses penyimpanan lokal Android
 echo -e "\n${YELLOW}[2/4] Memeriksa izin akses penyimpanan internal...${NC}"
-if [ ! -d "/sdcard/Download" ]; then
+if [ ! -d "/sdcard/DCIM" ]; then
     echo -e "${CYAN}[i] Silakan ketuk 'Izinkan / Allow' pada pop-up layar HP Anda.${NC}"
     termux-setup-storage
     sleep 3
