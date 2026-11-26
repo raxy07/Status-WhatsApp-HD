@@ -137,3 +137,7 @@ Select media source:
 
 ## 📜 License
 MIT
+FFmpeg (for base)
+PureStatus App (for inspired)
+ALLAH SWT.
+And u for using my tools
