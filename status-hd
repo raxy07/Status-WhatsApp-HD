@@ -12,7 +12,7 @@ BOLD='\033[1m'
 NC='\033[0m' # Reset warna
 
 # Folder output lokal (100% privat di perangkat pengguna)
-OUTPUT_DIR="/sdcard/Download/WA_Status_HD"
+OUTPUT_DIR="/sdcard/DCIM/WA_Status_HD"
 mkdir -p "$OUTPUT_DIR"
 
 # Fungsi Banner ASCII Art
@@ -42,15 +42,13 @@ get_size_mb() {
     fi
 }
 
-# Fungsi mendeteksi orientasi media (Vertikal vs Horizontal/Persegi)
+# Fungsi mendeteksi orientasi media sebagai info panduan pengguna
 detect_orientation() {
     local file="$1"
-    # Ambil dimensi efektif dengan memperhitungkan rotasi metadata HP
-    local dims=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height:stream_side_data=rotation -of csv=s=x:p=0 "$file" 2>/dev/null | head -n 1)
+    local dims=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$file" 2>/dev/null | head -n 1)
     local width=$(echo "$dims" | cut -d'x' -f1)
     local height=$(echo "$dims" | cut -d'x' -f2)
 
-    # Cek jika ada metadata rotasi 90 atau -90 derajat dari kamera HP
     local rot=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate -of default=noprint_wrappers=1:nokey=1 "$file" 2>/dev/null)
     if [[ "$rot" == "90" || "$rot" == "270" || "$rot" == "-90" ]]; then
         local temp=$width
@@ -59,13 +57,15 @@ detect_orientation() {
     fi
 
     if [ -n "$width" ] && [ -n "$height" ]; then
-        if [ "$width" -ge "$height" ]; then
-            echo "HORIZONTAL"
+        if [ "$width" -gt "$height" ]; then
+            echo "Horizontal / Landscape (${width}x${height})"
+        elif [ "$width" -eq "$height" ]; then
+            echo "Persegi / Square (${width}x${height})"
         else
-            echo "VERTIKAL"
+            echo "Vertikal / Portrait (${width}x${height})"
         fi
     else
-        echo "UNKNOWN"
+        echo "Tidak diketahui"
     fi
 }
 
@@ -115,18 +115,24 @@ ORIG_SIZE=$(get_size_mb "$INPUT_FILE")
 BASENAME=$(basename "${INPUT_FILE%.*}")
 EXT="${INPUT_FILE##*.}"
 EXT_LOWER=$(echo "$EXT" | tr '[:upper:]' '[:lower:]')
+ORIENTATION_INFO=$(detect_orientation "$INPUT_FILE")
 
-# Deteksi orientasi otomatis
-ORIENTATION=$(detect_orientation "$INPUT_FILE")
+echo -e "\n${CYAN}[i] Info Dimensi Media: ${BOLD}$ORIENTATION_INFO${NC}"
 
-if [ "$ORIENTATION" == "HORIZONTAL" ]; then
-    echo -e "\n${CYAN}[i] Orientasi terdeteksi: ${BOLD}Horizontal / Persegi${NC}"
-    echo -e "${YELLOW}[*] Opsi Blur Background 9:16 otomatis diaktifkan agar media tidak terpotong.${NC}"
+# ==========================================
+# PILIHAN MANUAL BLUR BACKGROUND (BERLAKU UNTUK FOTO & VIDEO)
+# ==========================================
+echo -e "\n${CYAN}${BOLD}Gunakan Latar Belakang Blur (Blur Background 9:16)?${NC}"
+echo "  1) Tidak (Pertahankan rasio & ukuran asli)"
+echo "  2) Ya (Tambahkan latar blur 9:16 agar pas layar penuh)"
+read -p "Pilih opsi [1/2]: " BLUR_CHOICE
+
+if [ "$BLUR_CHOICE" == "2" ]; then
     VF_FILTER="split[original][copy];[copy]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[blurred];[original]scale=1080:-2:force_original_aspect_ratio=decrease[fg];[blurred][fg]overlay=(W-w)/2:(H-h)/2"
+    BLUR_STATUS="Aktif (9:16)"
 else
-    echo -e "\n${CYAN}[i] Orientasi terdeteksi: ${BOLD}Vertikal (9:16)${NC}"
-    echo -e "${GREEN}[*] Tanpa latar blur — langsung mengoptimalkan ukuran layar penuh.${NC}"
     VF_FILTER="scale='min(1080,iw)':-2"
+    BLUR_STATUS="Tidak Aktif (Asli)"
 fi
 
 # ==========================================
@@ -155,9 +161,12 @@ if [[ "$EXT_LOWER" == "mp4" || "$EXT_LOWER" == "mkv" || "$EXT_LOWER" == "mov" ]]
             -movflags +faststart \
             -y "$OUT_PATTERN"
 
+        # Pindai ulang folder output agar langsung muncul di Galeri HP
+        command -v termux-media-scan &> /dev/null && termux-media-scan -r "$OUTPUT_DIR"
+
         echo -e "\n${BLUE}===========================================================${NC}"
         echo -e "${GREEN}${BOLD}[✓] SELESAI! Video berhasil dioptimalkan & dipotong (${SEG_TIME}s).${NC}"
-        echo -e "    Mode Tampilan : ${CYAN}$ORIENTATION${NC}"
+        echo -e "    Latar Blur    : ${CYAN}$BLUR_STATUS${NC}"
         echo -e "    Ukuran Asli   : ${YELLOW}$ORIG_SIZE${NC}"
         echo -e "    Folder Output : ${CYAN}$OUTPUT_DIR${NC}"
         echo -e "${BLUE}===========================================================${NC}"
@@ -172,10 +181,13 @@ if [[ "$EXT_LOWER" == "mp4" || "$EXT_LOWER" == "mkv" || "$EXT_LOWER" == "mov" ]]
             -movflags +faststart \
             -y "$OUTPUT_FILE"
 
+        # Pindai ulang file output agar langsung muncul di Galeri HP
+        command -v termux-media-scan &> /dev/null && termux-media-scan "$OUTPUT_FILE"
+
         NEW_SIZE=$(get_size_mb "$OUTPUT_FILE")
         echo -e "\n${BLUE}===========================================================${NC}"
         echo -e "${GREEN}${BOLD}[✓] SELESAI! Video siap diunggah ke Status WhatsApp.${NC}"
-        echo -e "    Mode Tampilan       : ${CYAN}$ORIENTATION${NC}"
+        echo -e "    Latar Blur          : ${CYAN}$BLUR_STATUS${NC}"
         echo -e "    Perbandingan Ukuran : ${YELLOW}$ORIG_SIZE${NC} ➔ ${GREEN}${BOLD}$NEW_SIZE${NC}"
         echo -e "    Lokasi File         : ${CYAN}$OUTPUT_FILE${NC}"
         echo -e "${BLUE}===========================================================${NC}"
@@ -193,10 +205,13 @@ elif [[ "$EXT_LOWER" == "jpg" || "$EXT_LOWER" == "jpeg" || "$EXT_LOWER" == "png"
         -q:v 2 \
         -y "$OUTPUT_FILE"
 
+    # Pindai ulang file output agar langsung muncul di Galeri HP
+    command -v termux-media-scan &> /dev/null && termux-media-scan "$OUTPUT_FILE"
+
     NEW_SIZE=$(get_size_mb "$OUTPUT_FILE")
     echo -e "\n${BLUE}===========================================================${NC}"
     echo -e "${GREEN}${BOLD}[✓] SELESAI! Foto siap diunggah ke Status WhatsApp.${NC}"
-    echo -e "    Mode Tampilan       : ${CYAN}$ORIENTATION${NC}"
+    echo -e "    Latar Blur          : ${CYAN}$BLUR_STATUS${NC}"
     echo -e "    Perbandingan Ukuran : ${YELLOW}$ORIG_SIZE${NC} ➔ ${GREEN}${BOLD}$NEW_SIZE${NC}"
     echo -e "    Lokasi File         : ${CYAN}$OUTPUT_FILE${NC}"
     echo -e "${BLUE}===========================================================${NC}"
