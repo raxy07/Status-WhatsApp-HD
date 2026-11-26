@@ -1,5 +1,9 @@
 # 📱 status-hd
 
+![Platform](https://shields.io)
+![Shell](https://shields.io)
+![License](https://shields.io)
+
 <p align="left">
   <a href="#-indonesia">🇮🇩 Indonesia</a> •
   <a href="#-english">🇬🇧 English</a>
@@ -9,82 +13,81 @@
 
 ## 🇮🇩 Indonesia
 
-Alat CLI ringan di **Termux** untuk mengoptimalkan foto dan video agar tetap jernih (**1080p HD, 30fps, ~4Mbps**) dan tidak pecah saat diunggah ke Status WhatsApp.
+CLI tool berbasis FFmpeg di **Termux** untuk mengoptimalkan kualitas foto & video (**1080p, 30fps, ~4Mbps**) agar tidak buram saat diunggah ke Status WhatsApp.
 
-> 🔒 **100% Lokal & Privat:** Semua proses konversi berjalan secara *offline* di perangkat Anda. Tidak ada foto atau video yang diunggah ke server mana pun.
+> 🔒 **100% Lokal & Privat:** Seluruh proses *encoding* berjalan secara *offline* di perangkat Anda. Tidak ada media yang dikirim ke server eksternal.
 
-### ✨ Fitur Utama
-- 🎬 **Optimasi Kualitas:** Mengunci output ke 1080p, 30fps, codec H.264, dan bitrate ~4Mbps agar lolos dari kompresi paksa WhatsApp.
-- 🖼️ **Blur Background (9:16):** Pilihan menambah latar buram 9:16 agar video atau foto *landscape* tidak terpotong.
-- 📲 **Integrasi Menu Share & File Picker:** Bisa langsung dipicu dari Galeri lewat **Bagikan (Share) > Termux**, atau pilih langsung lewat antarmuka pemilih file bawaan Android.
-- ✂️ **Video Splitter:** Opsi potong durasi otomatis per 30 detik atau 60 detik dengan transisi mulus.
-- 📂 **Auto-Scan Galeri:** Hasil otomatis tersimpan di `DCIM/WA_Status_HD` dan langsung muncul di Galeri.
+### ✨ Fitur
+- 🎬 **Smart Encoding:** Mengunci output ke 1080p, 30fps, H.264, dan bitrate ~4Mbps untuk mencegah kompresi agresif server WhatsApp.
+- 🖼️ **9:16 Blur Canvas:** Opsi menambahkan *blurred background* 9:16 agar media *landscape* atau persegi tidak terpotong.
+- 📲 **Share Menu & File Picker:** Bisa langsung dijalankan lewat **Bagikan (Share) > Termux** dari Galeri, atau pilih langsung via *file picker* Android.
+- ✂️ **Auto Video Splitter:** Memotong video panjang per 30 detik atau 60 detik dengan *keyframe alignment* agar transisi mulus.
+- 📂 **Gallery Auto-Scan:** Output otomatis tersimpan ke `DCIM/WA_Status_HD` dan langsung terindeks di Galeri.
 
 ### 🚀 Instalasi
-Jalankan perintah berikut satu per satu di **Termux**:
+Jalankan perintah berikut secara berurutan di **Termux**:
 
-1. Perbarui paket Termux:
+1. Update paket Termux:
 ```bash
 pkg update && pkg upgrade -y
 ```
 
-2. Pasang Git:
+2. Install Git:
 ```bash
 pkg install git -y
 ```
 
-3. Kloning repositori ini:
+3. Clone repositori:
 ```bash
-git clone https://github.com
+git clone https://github.com/raxy07/Status-WhatsApp-HD
 ```
 
-4. Masuk ke folder repositori:
+4. Masuk ke direktori proyek:
 ```bash
 cd Status-Whatsapp-HD
 ```
 
-5. Beri izin eksekusi pada skrip instalasi:
+5. Beri izin eksekusi:
 ```bash
 chmod +x install.sh
 ```
 
-6. Jalankan instalasi:
+6. Jalankan installer:
 ```bash
 ./install.sh
 ```
-*(Ketuk **Izinkan / Allow** saat muncul pop-up izin penyimpanan).*
 
-### 📖 Cara Pakai
-- 🖼️ **Dari Galeri (Paling Praktis):** Pilih foto/video ➔ **Bagikan (Share)** ➔ **Termux**.
-- 💻 **Dari Terminal:** Ketik perintah berikut dari folder mana saja:
+### 📖 Penggunaan
+- 🖼️ **Via Galeri:** Pilih foto/video ➔ **Bagikan (Share)** ➔ **Termux**.
+- 💻 **Via Terminal:** Jalankan dari direktori mana saja:
 ```bash
 status-hd
 ```
-Lalu pilih sumber media yang diinginkan:
-  1. `Scan 10 recent files` (Pindai 10 file terbaru)
-  2. `Pick from Gallery / File Manager` (Pilih langsung dari Galeri)
-  3. `Enter filename manually` (Ketik nama file manual)
-  0. `Exit` (Keluar)
+Pilih sumber media:
+  - `1` — Scan 10 media terbaru
+  - `2` — Pilih dari Galeri / File Manager
+  - `3` — Input nama file manual
+  - `0` — Keluar
 
-📁 **Lokasi Hasil:** `Internal Storage/DCIM/WA_Status_HD`
+📁 **Output:** `Internal Storage/DCIM/WA_Status_HD`
 
 ---
 
 ## 🇬🇧 English
 
-A lightweight **Termux** CLI tool to optimize photos and videos (**1080p HD, 30fps, ~4Mbps**) so they stay sharp and bypass WhatsApp Status compression.
+An FFmpeg-based CLI tool for **Termux** to optimize photos & videos (**1080p, 30fps, ~4Mbps**) so they stay sharp on WhatsApp Status.
 
-> 🔒 **100% Local & Private:** All media processing runs completely *offline* on your device. No photos or videos are ever uploaded to any server.
+> 🔒 **100% Local & Private:** All media encoding runs completely *offline* on your device. No files are ever uploaded to external servers.
 
-### ✨ Key Features
-- 🎬 **Quality Optimization:** Locks output to 1080p, 30fps, H.264 codec, and ~4Mbps bitrate to avoid aggressive server re-encoding.
-- 🖼️ **Blur Background (9:16):** Optional 9:16 blurred canvas so landscape or square media won't get cropped.
-- 📲 **Android Share & File Picker Integration:** Trigger directly from your Gallery via **Share > Termux**, or pick media using the native Android file picker.
-- ✂️ **Video Splitter:** Split videos into 30s or 60s segments with clean keyframe alignment.
+### ✨ Features
+- 🎬 **Smart Encoding:** Locks output to 1080p, 30fps, H.264, and ~4Mbps bitrate to bypass aggressive WhatsApp re-encoding.
+- 🖼️ **9:16 Blur Canvas:** Optional 9:16 blurred background to prevent cropping on landscape or square media.
+- 📲 **Share Menu & File Picker:** Trigger directly from Gallery via **Share > Termux**, or pick files via the native Android file picker.
+- ✂️ **Auto Video Splitter:** Split long videos into 30s or 60s segments with keyframe alignment for seamless playback.
 - 📂 **Gallery Auto-Scan:** Saves output straight to `DCIM/WA_Status_HD` and triggers media indexing automatically.
 
 ### 🚀 Installation
-Run the following commands one by one inside **Termux**:
+Run the following commands sequentially in **Termux**:
 
 1. Update Termux packages:
 ```bash
@@ -96,17 +99,17 @@ pkg update && pkg upgrade -y
 pkg install git -y
 ```
 
-3. Clone this repository:
+3. Clone the repository:
 ```bash
-git clone https://github.com
+git clone https://github.com/raxy07/Status-WhatsApp-HD
 ```
 
-4. Enter the repository folder:
+4. Navigate to the project directory:
 ```bash
 cd Status-Whatsapp-HD
 ```
 
-5. Grant execution permission to the installer:
+5. Grant execution permission:
 ```bash
 chmod +x install.sh
 ```
@@ -115,21 +118,20 @@ chmod +x install.sh
 ```bash
 ./install.sh
 ```
-*(Tap **Allow** when prompted for storage permission).*
 
 ### 📖 Usage
-- 🖼️ **From Gallery (Recommended):** Pick a photo/video ➔ **Share** ➔ **Termux**.
-- 💻 **From Terminal:** Run the command below from any directory:
+- 🖼️ **Via Gallery:** Pick a photo/video ➔ **Share** ➔ **Termux**.
+- 💻 **Via Terminal:** Run from any directory:
 ```bash
 status-hd
 ```
-Then choose your preferred media source:
-  1. `Scan 10 recent files`
-  2. `Pick from Gallery / File Manager`
-  3. `Enter filename manually`
-  0. `Exit`
+Select media source:
+  - `1` — Scan 10 recent files
+  - `2` — Pick from Gallery / File Manager
+  - `3` — Enter filename manually
+  - `0` — Exit
 
-📁 **Output Path:** `Internal Storage/DCIM/WA_Status_HD`
+📁 **Output:** `Internal Storage/DCIM/WA_Status_HD`
 
 ---
 
