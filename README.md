@@ -1,4 +1,4 @@
-# 📱 status-hd
+# 📱 WA Status HD Optimizer (status-hd)
 
 ![Platform](https://shields.io)
 ![Shell](https://shields.io)
