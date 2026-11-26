@@ -1,22 +1,17 @@
 #!/bin/bash
 
-# ==========================================
-# KODE WARNA ANSI
-# ==========================================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # Reset warna
+NC='\033[0m'
 
-# Folder output lokal di DCIM agar langsung muncul di Galeri
-OUTPUT_DIR="/sdcard/DCIM/WA_Status_HD"
-mkdir -p "$OUTPUT_DIR"
+OUT_DIR="/sdcard/DCIM/WA_Status_HD"
+mkdir -p "$OUT_DIR"
 
-# Fungsi Banner ASCII Art
-show_banner() {
+banner() {
     clear
     echo -e "${CYAN}${BOLD}"
     cat << "EOF"
@@ -27,197 +22,181 @@ show_banner() {
 
  |____/ \__\__,_|\__|\__,_|___/   |_| |_|____/ 
 EOF
-    echo -e "${NC}${GREEN}  WA Status Optimizer & Splitter (100% Offline & Privat)${NC}"
+    echo -e "${NC}${GREEN}  WA Status Optimizer & Splitter${NC}"
     echo -e "${BLUE}===========================================================${NC}\n"
 }
 
-# Fungsi menghitung ukuran file dalam MB
-get_size_mb() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        local bytes=$(stat -c%s "$file" 2>/dev/null || wc -c < "$file")
-        awk "BEGIN {printf \"%.2f MB\", $bytes/1048576}"
+get_size() {
+    local f="$1"
+    if [ -f "$f" ]; then
+        local b=$(stat -c%s "$f" 2>/dev/null || wc -c < "$f")
+        awk "BEGIN {printf \"%.2f MB\", $b/1048576}"
     else
         echo "0 MB"
     fi
 }
 
-# Fungsi mendeteksi dimensi & orientasi media sebagai info panduan
-detect_orientation() {
-    local file="$1"
-    local dims=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$file" 2>/dev/null | head -n 1)
-    local width=$(echo "$dims" | cut -d'x' -f1)
-    local height=$(echo "$dims" | cut -d'x' -f2)
+get_dim() {
+    local f="$1"
+    local dim=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$f" 2>/dev/null | head -n 1)
+    local w=$(echo "$dim" | cut -d'x' -f1)
+    local h=$(echo "$dim" | cut -d'x' -f2)
 
-    local rot=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate -of default=noprint_wrappers=1:nokey=1 "$file" 2>/dev/null)
+    local rot=$(ffprobe -v error -select_streams v:0 -show_entries stream_tags=rotate -of default=noprint_wrappers=1:nokey=1 "$f" 2>/dev/null)
     if [[ "$rot" == "90" || "$rot" == "270" || "$rot" == "-90" ]]; then
-        local temp=$width
-        width=$height
-        height=$temp
+        local tmp=$w
+        w=$h
+        h=$tmp
     fi
 
-    if [ -n "$width" ] && [ -n "$height" ]; then
-        if [ "$width" -gt "$height" ]; then
-            echo "Horizontal / Landscape (${width}x${height})"
-        elif [ "$width" -eq "$height" ]; then
-            echo "Persegi / Square (${width}x${height})"
+    if [ -n "$w" ] && [ -n "$h" ]; then
+        if [ "$w" -gt "$h" ]; then
+            echo "Landscape (${w}x${h})"
+        elif [ "$w" -eq "$h" ]; then
+            echo "Square (${w}x${h})"
         else
-            echo "Vertikal / Portrait (${width}x${height})"
+            echo "Portrait (${w}x${h})"
         fi
     else
-        echo "Tidak diketahui"
+        echo "Unknown"
     fi
 }
 
-show_banner
+scan_media() {
+    if command -v termux-media-scan &> /dev/null; then
+        termux-media-scan -r "$1" &> /dev/null
+    fi
+}
 
-# ==========================================
-# DETEKSI INPUT (DARI MENU SHARE ATAU MANUAL)
-# ==========================================
-INPUT_FILE=""
+banner
+
+INPUT=""
 
 if [ -n "$1" ] && [ -f "$1" ]; then
-    INPUT_FILE="$1"
-    echo -e "${GREEN}[✓] Media diterima dari menu Bagikan Android:${NC}"
-    echo -e "    $(basename "$INPUT_FILE")\n"
+    INPUT="$1"
+    echo -e "${GREEN}[+] File loaded from Share menu:${NC} $(basename "$INPUT")\n"
 else
-    echo -e "${YELLOW}[*] Mencari 10 media terbaru di penyimpanan...${NC}"
+    echo -e "${YELLOW}[*] Scanning recent media...${NC}"
     mapfile -t FILES < <(find /sdcard/DCIM/Camera /sdcard/Download /sdcard/Movies /sdcard/Pictures -maxdepth 2 -type f \( -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.mov" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n 10 | cut -d' ' -f2-)
 
     if [ ${#FILES[@]} -gt 0 ]; then
-        echo -e "${CYAN}Pilih nomor media terbaru atau ketik nama file secara manual:${NC}"
+        echo -e "${CYAN}Recent files:${NC}"
         for i in "${!FILES[@]}"; do
-            SIZE_INFO=$(get_size_mb "${FILES[$i]}")
-            echo -e "  ${BOLD}$((i+1)))${NC} $(basename "${FILES[$i]}") ${YELLOW}[$SIZE_INFO]${NC}"
+            echo -e "  ${BOLD}$((i+1)))${NC} $(basename "${FILES[$i]}") ${YELLOW}[$(get_size "${FILES[$i]}")]${NC}"
         done
-        echo -e "  ${BOLD}0)${NC} Ketik nama file secara manual"
-        echo ""
-        read -p "Pilihan Anda [1-${#FILES[@]} / 0]: " FILE_CHOICE
+        echo -e "  ${BOLD}0)${NC} Enter filename manually\n"
+        read -p "Select [1-${#FILES[@]} / 0]: " CHOICE
 
-        if [[ "$FILE_CHOICE" =~ ^[1-9]$|^10$ ]] && [ "$FILE_CHOICE" -le "${#FILES[@]}" ]; then
-            INPUT_FILE="${FILES[$((FILE_CHOICE-1))]}"
+        if [[ "$CHOICE" =~ ^[1-9]$|^10$ ]] && [ "$CHOICE" -le "${#FILES[@]}" ]; then
+            INPUT="${FILES[$((CHOICE-1))]}"
         fi
     fi
 
-    if [ -z "$INPUT_FILE" ]; then
-        read -p "Masukkan nama file (contoh: video.mp4): " FILENAME
-        INPUT_FILE=$(find /sdcard/Download /sdcard/DCIM /sdcard/Movies /sdcard/Pictures -name "$FILENAME" 2>/dev/null | head -n 1)
+    if [ -z "$INPUT" ]; then
+        read -p "Filename: " FNAME
+        INPUT=$(find /sdcard/Download /sdcard/DCIM /sdcard/Movies /sdcard/Pictures -name "$FNAME" 2>/dev/null | head -n 1)
     fi
 fi
 
-# Validasi keberadaan file
-if [ -z "$INPUT_FILE" ] || [ ! -f "$INPUT_FILE" ]; then
-    echo -e "\n${RED}[!] File tidak ditemukan. Pastikan izin penyimpanan sudah aktif.${NC}"
+if [ -z "$INPUT" ] || [ ! -f "$INPUT" ]; then
+    echo -e "\n${RED}[!] File not found.${NC}"
     exit 1
 fi
 
-ORIG_SIZE=$(get_size_mb "$INPUT_FILE")
-BASENAME=$(basename "${INPUT_FILE%.*}")
-EXT="${INPUT_FILE##*.}"
-EXT_LOWER=$(echo "$EXT" | tr '[:upper:]' '[:lower:]')
-ORIENTATION_INFO=$(detect_orientation "$INPUT_FILE")
+ORIG_SIZE=$(get_size "$INPUT")
+BASE=$(basename "${INPUT%.*}")
+EXT=$(echo "${INPUT##*.}" | tr '[:upper:]' '[:lower:]')
 
-echo -e "\n${CYAN}[i] Info Dimensi Media: ${BOLD}$ORIENTATION_INFO${NC}"
+echo -e "\n${CYAN}[i] Resolution:${NC} $(get_dim "$INPUT")"
 
-# ==========================================
-# PILIHAN MANUAL BLUR BACKGROUND (1 = BLUR, 2 = TIDAK BLUR)
-# ==========================================
-echo -e "\n${CYAN}${BOLD}Pilih Opsi Latar Belakang Blur (9:16):${NC}"
-echo "  1) Gunakan Blur (Tambahkan latar belakang blur 9:16)"
-echo "  2) Tidak Blur (Pertahankan rasio & ukuran asli)"
-read -p "Pilih opsi [1/2]: " BLUR_CHOICE
+echo -e "\n${CYAN}${BOLD}Background Blur (9:16):${NC}"
+echo "  1) Use Blur"
+echo "  2) No Blur"
+read -p "Select [1/2]: " BLUR
 
-if [ "$BLUR_CHOICE" == "1" ]; then
-    VF_FILTER="split[original][copy];[copy]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[blurred];[original]scale=1080:-2:force_original_aspect_ratio=decrease[fg];[blurred][fg]overlay=(W-w)/2:(H-h)/2"
-    BLUR_STATUS="Gunakan Blur (9:16)"
+if [ "$BLUR" == "1" ]; then
+    VF="split[a][b];[b]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[a]scale=1080:-2:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"
+    BLUR_TXT="Yes (9:16)"
 else
-    VF_FILTER="scale='min(1080,iw)':-2"
-    BLUR_STATUS="Tidak Blur (Asli)"
+    VF="scale='min(1080,iw)':-2"
+    BLUR_TXT="No"
 fi
 
-# ==========================================
-# PROSES VIDEO
-# ==========================================
-if [[ "$EXT_LOWER" == "mp4" || "$EXT_LOWER" == "mkv" || "$EXT_LOWER" == "mov" ]]; then
-    echo -e "\n${CYAN}${BOLD}Pilih Opsi Pemotongan Durasi (Video Splitter):${NC}"
-    echo "  1) Potong per 30 detik"
-    echo "  2) Potong per 60 detik (Rekomendasi WA terbaru)"
-    echo "  3) Jangan dipotong (Biarkan utuh)"
-    read -p "Pilih opsi [1/2/3]: " SPLIT_CHOICE
+if [[ "$EXT" == "mp4" || "$EXT" == "mkv" || "$EXT" == "mov" ]]; then
+    echo -e "\n${CYAN}${BOLD}Split Duration:${NC}"
+    echo "  1) 30 seconds"
+    echo "  2) 60 seconds"
+    echo "  3) No split"
+    read -p "Select [1/2/3]: " SPLIT
 
-    echo -e "\n${YELLOW}[*] Memproses video... (Menampilkan progress bar)${NC}"
+    echo -e "\n${YELLOW}[*] Encoding video...${NC}"
 
-    if [ "$SPLIT_CHOICE" == "1" ] || [ "$SPLIT_CHOICE" == "2" ]; then
-        [ "$SPLIT_CHOICE" == "1" ] && SEG_TIME=30 || SEG_TIME=60
-        OUT_PATTERN="$OUTPUT_DIR/${BASENAME}_part%02d.mp4"
+    if [ "$SPLIT" == "1" ] || [ "$SPLIT" == "2" ]; then
+        [ "$SPLIT" == "1" ] && SEC=30 || SEC=60
+        OUT="$OUT_DIR/${BASE}_part%02d.mp4"
 
-        ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" \
-            -vf "$VF_FILTER" \
+        ffmpeg -hide_banner -loglevel error -stats -i "$INPUT" \
+            -vf "$VF" \
             -c:v libx264 -preset medium -b:v 4000k -maxrate 4500k -bufsize 8000k \
             -r 30 -pix_fmt yuv420p \
             -g 60 -keyint_min 60 -sc_threshold 0 \
             -c:a aac -b:a 128k -ar 44100 \
-            -f segment -segment_time "$SEG_TIME" -reset_timestamps 1 \
+            -f segment -segment_time "$SEC" -reset_timestamps 1 \
             -movflags +faststart \
-            -y "$OUT_PATTERN"
+            -y "$OUT"
 
-        command -v termux-media-scan &> /dev/null && termux-media-scan -r "$OUTPUT_DIR"
+        scan_media "$OUT_DIR"
 
         echo -e "\n${BLUE}===========================================================${NC}"
-        echo -e "${GREEN}${BOLD}[✓] SELESAI! Video berhasil dioptimalkan & dipotong (${SEG_TIME}s).${NC}"
-        echo -e "    Opsi Blur     : ${CYAN}$BLUR_STATUS${NC}"
-        echo -e "    Ukuran Asli   : ${YELLOW}$ORIG_SIZE${NC}"
-        echo -e "    Folder Output : ${CYAN}$OUTPUT_DIR${NC}"
+        echo -e "${GREEN}${BOLD}[✓] Done! Split into ${SEC}s segments.${NC}"
+        echo -e "    Blur   : ${CYAN}$BLUR_TXT${NC}"
+        echo -e "    Input  : ${YELLOW}$ORIG_SIZE${NC}"
+        echo -e "    Output : ${CYAN}$OUT_DIR${NC}"
         echo -e "${BLUE}===========================================================${NC}"
     else
-        OUTPUT_FILE="$OUTPUT_DIR/${BASENAME}_WA.mp4"
+        OUT="$OUT_DIR/${BASE}_WA.mp4"
 
-        ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" \
-            -vf "$VF_FILTER" \
+        ffmpeg -hide_banner -loglevel error -stats -i "$INPUT" \
+            -vf "$VF" \
             -c:v libx264 -preset medium -b:v 4000k -maxrate 4500k -bufsize 8000k \
             -r 30 -pix_fmt yuv420p \
             -c:a aac -b:a 128k -ar 44100 \
             -movflags +faststart \
-            -y "$OUTPUT_FILE"
+            -y "$OUT"
 
-        command -v termux-media-scan &> /dev/null && termux-media-scan "$OUTPUT_FILE"
+        scan_media "$OUT"
 
-        NEW_SIZE=$(get_size_mb "$OUTPUT_FILE")
         echo -e "\n${BLUE}===========================================================${NC}"
-        echo -e "${GREEN}${BOLD}[✓] SELESAI! Video siap diunggah ke Status WhatsApp.${NC}"
-        echo -e "    Opsi Blur           : ${CYAN}$BLUR_STATUS${NC}"
-        echo -e "    Perbandingan Ukuran : ${YELLOW}$ORIG_SIZE${NC} ➔ ${GREEN}${BOLD}$NEW_SIZE${NC}"
-        echo -e "    Lokasi File         : ${CYAN}$OUTPUT_FILE${NC}"
+        echo -e "${GREEN}${BOLD}[✓] Done!${NC}"
+        echo -e "    Blur   : ${CYAN}$BLUR_TXT${NC}"
+        echo -e "    Size   : ${YELLOW}$ORIG_SIZE${NC} -> ${GREEN}${BOLD}$(get_size "$OUT")${NC}"
+        echo -e "    Output : ${CYAN}$OUT${NC}"
         echo -e "${BLUE}===========================================================${NC}"
     fi
 
-# ==========================================
-# PROSES FOTO
-# ==========================================
-elif [[ "$EXT_LOWER" == "jpg" || "$EXT_LOWER" == "jpeg" || "$EXT_LOWER" == "png" ]]; then
-    OUTPUT_FILE="$OUTPUT_DIR/${BASENAME}_WA.jpg"
-    echo -e "\n${YELLOW}[*] Memproses foto...${NC}"
+elif [[ "$EXT" == "jpg" || "$EXT" == "jpeg" || "$EXT" == "png" ]]; then
+    OUT="$OUT_DIR/${BASE}_WA.jpg"
+    echo -e "\n${YELLOW}[*] Processing image...${NC}"
 
-    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT_FILE" \
-        -vf "$VF_FILTER" \
+    ffmpeg -hide_banner -loglevel error -stats -i "$INPUT" \
+        -vf "$VF" \
         -q:v 2 \
-        -y "$OUTPUT_FILE"
+        -y "$OUT"
 
-    command -v termux-media-scan &> /dev/null && termux-media-scan "$OUTPUT_FILE"
+    scan_media "$OUT"
 
-    NEW_SIZE=$(get_size_mb "$OUTPUT_FILE")
     echo -e "\n${BLUE}===========================================================${NC}"
-    echo -e "${GREEN}${BOLD}[✓] SELESAI! Foto siap diunggah ke Status WhatsApp.${NC}"
-    echo -e "    Opsi Blur           : ${CYAN}$BLUR_STATUS${NC}"
-    echo -e "    Perbandingan Ukuran : ${YELLOW}$ORIG_SIZE${NC} ➔ ${GREEN}${BOLD}$NEW_SIZE${NC}"
-    echo -e "    Lokasi File         : ${CYAN}$OUTPUT_FILE${NC}"
+    echo -e "${GREEN}${BOLD}[✓] Done!${NC}"
+    echo -e "    Blur   : ${CYAN}$BLUR_TXT${NC}"
+    echo -e "    Size   : ${YELLOW}$ORIG_SIZE${NC} -> ${GREEN}${BOLD}$(get_size "$OUT")${NC}"
+    echo -e "    Output : ${CYAN}$OUT${NC}"
     echo -e "${BLUE}===========================================================${NC}"
 else
-    echo -e "\n${RED}[!] Format file tidak didukung ($EXT_LOWER).${NC}"
+    echo -e "\n${RED}[!] Unsupported format: $EXT${NC}"
 fi
 
-# Tahan layar jika dibuka lewat menu Share Android agar hasil terbaca
 if [ -n "$1" ]; then
     echo ""
-    read -p "Tekan [Enter] untuk menutup terminal..."
+    read -p "Press [Enter] to exit..."
 fi
+
