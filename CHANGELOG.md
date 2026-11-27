@@ -1,7 +1,8 @@
 ## Changelog — StatusHD (v1.0.0) 📱✨
 
 ### Pemrosesan Video & Foto 🎥🖼️
-
+* Mengubah mesin media pengolah dari yang sebelumnya menggunakan CPU menjadi GPU untuk mengurangi suhu dan penggunaan baterai
+  
 * Optimasi Video HD: Transcoding video ke H.264, 30fps, dengan pengaturan *bitrate* VBR 3.0–5.0 Mbps serta pilihan resolusi 720p dan 1080p HD agar kualitas tetap terjaga saat diunggah ke Status WhatsApp.
 * **Pemotongan Durasi Manual (*Trim Duration*):** Slider rentang waktu interaktif lengkap dengan *frame scrubbing* langsung di layar pratinjau. Fitur *auto-split* dihapus agar kontrol pemotongan video sepenuhnya manual dan lebih stabil. ✂️
 * Stabilitas Ekspor Audio & Muxer: Penambahan opsi *Mute Audio Track* serta standarisasi *encoding* audio ke format AAC untuk mencegah kegagalan *muxer* pada video panjang atau rekaman layar. 🔊
